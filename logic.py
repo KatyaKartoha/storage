@@ -114,3 +114,25 @@ if __name__ == '__main__':
     ]
     manager.insert_project(data)
    
+
+
+
+   
+# Подключение к базе данных
+conn = sqlite3.connect('db.db')
+cursor = conn.cursor()
+
+# Название таблицы
+table_name = 'projects'
+
+# Название нового столбца и его тип данных
+new_column_name = 'photo'
+new_column_type = 'IMAGE'
+
+# Выполнение запроса на добавление столбца
+alter_query = f"ALTER TABLE {table_name} ADD COLUMN {new_column_name} {new_column_type}"
+cursor.execute(alter_query)
+
+# Сохранение изменений и закрытие соединения
+conn.commit()
+conn.close()

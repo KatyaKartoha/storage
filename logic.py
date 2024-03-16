@@ -110,7 +110,7 @@ WHERE user_id = ? AND project_id = ? """ # Запиши сюда правиль�
 if __name__ == '__main__':
     manager = DB_Manager(DATABASE)
     data = [
-        (114, "Storage", "stores projects", "https://github.com/KatyaKartoha/storage", 4)
+        (114, "Storage", "stores projects", "https://github.com/KatyaKartoha/storage", 4)#last project
     ]
     manager.insert_project(data)
    

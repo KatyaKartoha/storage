@@ -20,7 +20,7 @@ class DB_Manager:
                             status_id INTEGER,
                             FOREIGN KEY(status_id) REFERENCES status(status_id)
                         )''') 
-            conn.execute('''CREATE TABLE skills (
+            conn.execute('''CREATE TABLE skill (
                             skill_id INTEGER PRIMARY KEY,
                             skill_name TEXT
                         )''')

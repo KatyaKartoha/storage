@@ -49,7 +49,7 @@ Skills: {skills}
 
 @bot.message_handler(commands=['start'])
 def start_command(message):
-    bot.send_message(message.chat.id, """Привет! Я бот-менеджер проектов
+    bot.send_message(message.chat.id, """Привет!👋 Я бот-менеджер проектов
 Помогу тебе сохранить твои проекты и информацию о них!) 
 """)
     info(message)
@@ -99,7 +99,7 @@ def callback_project(message, data, statuses):
     status_id = manager.get_status_id(status)
     data.append(status_id)
     manager.insert_project(tuple(data))
-    bot.send_message(message.chat.id, "Проект сохранен")
+    bot.send_message(message.chat.id, "Проект сохранен \N{smiling face with sunglasses}")
     info(message)
 
 
@@ -122,7 +122,7 @@ def skill_project(message, projects):
         return
         
     if project_name not in projects:
-        bot.send_message(message.chat.id, 'У тебя нет такого проекта, попробуй еще раз!) Выбери проект для которого нужно выбрать навык', reply_markup=gen_markup(projects))
+        bot.send_message(message.chat.id, 'У тебя нет такого проекта, попробуй еще раз!\N{dotted line face} Выбери проект для которого нужно выбрать навык', reply_markup=gen_markup(projects))
         bot.register_next_step_handler(message, skill_project, projects=projects)
     else:
         skills = [x[1] for x in manager.get_skills()]
@@ -137,11 +137,11 @@ def set_skill(message, project_name, skills):
         return
         
     if skill not in skills:
-        bot.send_message(message.chat.id, 'Видимо, ты выбрал навык. не из спика, попробуй еще раз!) Выбери навык', reply_markup=gen_markup(skills))
+        bot.send_message(message.chat.id, 'Видимо, ты выбрал навык.\N{confused face} не из спика, попробуй еще раз!) Выбери навык', reply_markup=gen_markup(skills))
         bot.register_next_step_handler(message, set_skill, project_name=project_name, skills=skills)
         return
     manager.insert_skill(user_id, project_name, skill )
-    bot.send_message(message.chat.id, f'Навык {skill} добавлен проекту {project_name}')
+    bot.send_message(message.chat.id, f'Навык {skill} добавлен проекту {project_name} \N{smiling face with sunglasses}')
 
 
 @bot.message_handler(commands=['projects'])
@@ -186,7 +186,7 @@ def delete_project(message, projects):
         return
     project_id = manager.get_project_id(project, user_id)
     manager.delete_project(user_id, project_id)
-    bot.send_message(message.chat.id, f'Проект {project} удален!')
+    bot.send_message(message.chat.id, f'Проект {project} удален!🚫')
 
 
 @bot.message_handler(commands=['update_projects'])

@@ -6,44 +6,50 @@ statuses = [ (_,) for _ in (['На этапе проектирования', 'В
 
 class DB_Manager:
     def __init__(self, database):
-        self.database = database # имя базы данных
-        
+        self.database = database
+
     def create_tables(self):
-        con = sqlite3.connect(self.database)
-        with con:
-            con.execute("""CREATE TABLE projects (
+        conn = sqlite3.connect(self.database)
+        with conn:
+            conn.execute('''CREATE TABLE projects (
                             project_id INTEGER PRIMARY KEY,
                             user_id INTEGER,
                             project_name TEXT NOT NULL,
                             description TEXT,
                             url TEXT,
                             status_id INTEGER,
-                            FOREIGN KEY(status_id) REFERENCES status(status_id))""")
-            con.execute("""CREATE TABLE status(
-                        status_id INTEGER PRIMARY KEY,
-                        status_name TEXT)""")
-            con.execute("""CREATE TABLE skills(
-                        skill_id INTEGER PRIMARY KEY,
-                        skill_name TEXT)""")
-            con.execute("""CREATE TABLE project_skills(
-                        skill_id INTEGER,
-                        project_id INTEGER,
-                        FOREIGN KEY (skill_id) REFERENCES skills(skill_id),
-                        FOREIGN KEY (project_id) REFERENCES projects(project_id))""")
-            con.commit()
-    
+                            FOREIGN KEY(status_id) REFERENCES status(status_id)
+                        )''') 
+            conn.execute('''CREATE TABLE skills (
+                            skill_id INTEGER PRIMARY KEY,
+                            skill_name TEXT
+                        )''')
+            conn.execute('''CREATE TABLE project_skills (
+                            project_id INTEGER,
+                            skill_id INTEGER,
+                            FOREIGN KEY(project_id) REFERENCES projects(project_id),
+                            FOREIGN KEY(skill_id) REFERENCES skills(skill_id)
+                        )''')
+            conn.execute('''CREATE TABLE status (
+                            status_id INTEGER PRIMARY KEY,
+                            status_name TEXT
+                        )''')
+            conn.commit()
+        print("База данных успешно создана.")
+
     def __executemany(self, sql, data):
         conn = sqlite3.connect(self.database)
         with conn:
             conn.executemany(sql, data)
-    
+
     def __select_data(self, sql, data = tuple()):
         conn = sqlite3.connect(self.database)
         with conn:
             cur = conn.cursor()
             cur.execute(sql, data)
             return cur.fetchall()
-    
+            
+
     def default_insert(self):
         sql = 'INSERT INTO skills (skill_name) values(?)'
         data = skills
@@ -52,21 +58,24 @@ class DB_Manager:
         data = statuses
         self.__executemany(sql, data)
 
+
     def insert_project(self, data):
-        sql = "INSERT INTO projects(user_id, project_name, description, url, status_id) VALUES(?, ?, ?, ?, ?)"
-        self.__executemany(sql, data)
+        sql = 'INSERT INTO projects (user_id, project_name, url, status_id) values(?, ?, ?, ?)'
+        self.__executemany(sql, [data])
 
     def insert_skill(self, user_id, project_name, skill):
-        id = self.get_project_info(user_id, project_name)[0][0]
-        skill_id = self.__select_data('SELECT id FROM skills WHERE skill_name = ?', (skill,))
-        data = [(id, skill_id)]
-        sql = 'INSERT INTO project_skills VALUES(?, ?)'
+        sql = 'SELECT project_id FROM projects WHERE project_name = ? AND user_id = ?'
+        project_id = self.__select_data(sql, (project_name, user_id))[0][0]
+        skill_id = self.__select_data('SELECT skill_id FROM skill WHERE skill_name = ?', (skill,))[0][0]
+        data = [(skill_id, project_id)]
+        sql = 'INSERT OR IGNORE INTO project_skills VALUES (?, ?)'
         self.__executemany(sql, data)
 
+  
     def get_statuses(self):
-        sql = "SELECT status_name from status"# Запиши сюда правильный SQL запрос
+        sql='SELECT status_name from status'
         return self.__select_data(sql)
-
+        
     def get_status_id(self, status_name):
         sql = 'SELECT status_id FROM status WHERE status_name = ?'
         res = self.__select_data(sql, (status_name,))
@@ -75,64 +84,46 @@ class DB_Manager:
 
     def get_projects(self, user_id):
         return self.__select_data(sql='SELECT * FROM projects WHERE user_id = ?', data = (user_id,))
-    
-    def get_project_id(self, project_name, user_id):        
-        sql = 'SELECT project_id FROM projects WHERE project_name = ? AND user_id = ?'
-        res = self.__select_data(sql, (project_name, user_id))[0][0]
-        return res
-    
+
+    def get_project_id(self, project_name, user_id):
+        return self.__select_data(sql='SELECT project_id FROM projects WHERE project_name = ? AND user_id = ?  ', data = (project_name, user_id,))[0][0]
+
     def get_skills(self):
-        return self.__select_data(sql='SELECT * FROM skills')
+        return self.__select_data(sql='SELECT * FROM skill')
+    
+    def get_project_skills(self, project_name):
+        res = self.__select_data(sql='''SELECT skill_name FROM 
+(SELECT * FROM projects 
+JOIN project_skills ON projects.project_id = project_skills.project_id 
+JOIN skill ON skill.skill_id = project_skills.skill_id 
+WHERE project_name = ?)''', data = (project_name,) )
+        return ', '.join([x[0] for x in res])
     
     def get_project_info(self, user_id, project_name):
         sql = """
-            SELECT project_name, description, url, status_name FROM  (
-            SELECT * FROM projects 
-            JOIN status ON
-            status.status_id = projects.status_id)
-            WHERE project_name=? AND user_id=?
-            """
-        return self.__select_data(sql=sql, data = (project_name, user_id))[0]
+SELECT project_name, description, url, status_name FROM  (
+SELECT * FROM projects 
+JOIN status ON
+status.status_id = projects.status_id)
+WHERE project_name=? AND user_id=?
+"""
+        return self.__select_data(sql=sql, data = (project_name, user_id))
+    
 
     def update_projects(self, param, data):
-        self.__executemany(f"UPDATE projects SET {param} = ? WHERE project_name = ? AND user_id = ?", [data]) 
+        self.__executemany(f"UPDATE projects SET {param} = ? WHERE project_name = ? AND user_id = ?", [data]) # data ('atr', 'mew', 'name', 'user_id')
+
 
     def delete_project(self, user_id, project_id):
-        sql = """DELETE FROM projects 
-        WHERE user_id = ? AND project_id = ? """
+        sql = "DELETE FROM projects WHERE user_id = ? AND project_id = ? "
         self.__executemany(sql, [(user_id, project_id)])
-    
+
     def delete_skill(self, project_id, skill_id):
-        sql = """""DELETE FROM projects 
-WHERE user_id = ? AND project_id = ? """ # Запиши сюда правильный SQL запрос
+        sql = "DELETE FROM skills WHERE skill_id = ? AND project_id = ? "
         self.__executemany(sql, [(skill_id, project_id)])
+
 
 if __name__ == '__main__':
     manager = DB_Manager(DATABASE)
-    data = [
-        (114, "Storage", "stores projects", "https://github.com/KatyaKartoha/storage", 4)#last project
-    ]
-    manager.insert_project(data)
-   
-
-
-
-   
-# Подключение к базе данных
-conn = sqlite3.connect('db.db')
-cursor = conn.cursor()
-
-# Название таблицы
-table_name = 'projects'
-
-# Название нового столбца и его тип данных
-new_column_name = 'photo'
-new_column_type = 'IMAGE'
-
-# Выполнение запроса на добавление столбца
-alter_query = f"ALTER TABLE {table_name} ADD COLUMN {new_column_name} {new_column_type}"
-cursor.execute(alter_query)
-
-# Сохранение изменений и закрытие соединения
-conn.commit()
-conn.close()
+    manager.create_tables()
+    manager.default_insert()
